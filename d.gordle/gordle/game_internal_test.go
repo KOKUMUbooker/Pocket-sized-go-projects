@@ -1,0 +1,78 @@
+package gordle
+
+import (
+	"errors"
+	"strings"
+	"testing"
+
+	"golang.org/x/exp/slices"
+)
+
+type askTC struct{
+	input string
+	want []rune
+}
+
+var tSolution = "hello";
+const tMaxAttempts =6;
+
+func TestGameAsk(t *testing.T) {
+	tt := map[string]askTC{
+		"5 characters in english": {
+			input: "HELLO",
+			want: []rune("HELLO"),
+		},
+		"5 characters in arabic": {
+			input: "ﺎﺒﺣﺮﻣ",
+			want: []rune("ﺎﺒﺣﺮﻣ"),
+		},
+		"5 characters in japanese": {
+			input: "こんにちは",
+			want: []rune("こんにちは"),
+		},
+		"3 characters in japanese": {
+			input: "こんに\nこんにちは",
+			want: []rune("こんにちは"),
+		},
+	};
+
+	for name, tc := range tt {
+		t.Run(name, func(t *testing.T) {
+			g := New(strings.NewReader(tc.input),tSolution,tMaxAttempts);
+
+			got := g.ask()
+			if !slices.Equal(got, tc.want) {
+				t.Errorf("got = %v, want %v", string(got), string(tc.want))
+			}
+		});
+	}
+}
+
+type vldTC struct{ 
+	word []rune
+	expected error
+}
+
+func TestGameValidateGuess(t *testing.T) {
+	tt := map[string]vldTC {
+		"nominal": { 
+			word:splitToUppercaseCharacters("GUESS"),
+			expected: nil,
+		},
+		"too long": {
+			word: splitToUppercaseCharacters("POCKET"),
+			expected: errInvalidWordLength,
+		},
+	};
+
+	for name, tc := range tt {
+		t.Run(name, func(t *testing.T) {
+			g := New(nil,tSolution,tMaxAttempts) 
+			err := g.validateGuess(tc.word) 
+
+			if !errors.Is(err, tc.expected) { 
+				t.Errorf("%c, expected %q, got %q", tc.word, tc.expected, err) 
+			}
+		});
+	}
+}
